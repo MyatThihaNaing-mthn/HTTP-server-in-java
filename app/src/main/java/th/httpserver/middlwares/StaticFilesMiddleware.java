@@ -33,12 +33,10 @@ public class StaticFilesMiddleware implements Middleware {
         }
 
         if (checkStaticFileRequest(request)) {
-            System.out.println("checkStaticFileRequest: " + request.getPath());
             String filePath = request.getPath();
             byte[] body = null;
             try {
                 body = FileReader.readFile(filePath);
-                System.out.println("body size: " + body.length);
                 response.setBody(body);
                 
                 response.addHeader("Content-Type", getContentType(filePath));
@@ -57,7 +55,6 @@ public class StaticFilesMiddleware implements Middleware {
 
     private Boolean checkRootPath(HttpRequest request) {
         String path = request.getPath();
-        System.out.println("checkRootPath: " + path);
         if (path.equals("/")) {
             return true;
         }
@@ -66,9 +63,7 @@ public class StaticFilesMiddleware implements Middleware {
 
     private Boolean checkStaticFileRequest(HttpRequest request) {
         String path = request.getPath();
-        System.out.println("Checking static file request for path: " + path);
         boolean isStaticFile = path.matches(".*\\.[a-zA-Z0-9]+$");
-        System.out.println("Is static file: " + isStaticFile);
         return isStaticFile;
     }
 
@@ -78,6 +73,13 @@ public class StaticFilesMiddleware implements Middleware {
         if (filePath.endsWith(".js")) return "application/javascript";
         if (filePath.endsWith(".png")) return "image/png";
         if (filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) return "image/jpeg";
+        if (filePath.endsWith(".gif")) return "image/gif";
+        if (filePath.endsWith(".svg")) return "image/svg+xml";
+        if (filePath.endsWith(".ico")) return "image/x-icon";
+        if (filePath.endsWith(".webp")) return "image/webp";
+        if (filePath.endsWith(".json")) return "application/json";
+        if (filePath.endsWith(".xml")) return "application/xml";
+        if (filePath.endsWith(".txt")) return "text/plain";
         return "application/octet-stream";
     }
 }

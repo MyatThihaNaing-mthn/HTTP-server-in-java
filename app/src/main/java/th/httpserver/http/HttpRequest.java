@@ -15,6 +15,7 @@ public class HttpRequest {
     private Map<String, String> headers;
     private Map<String, String> queryParams;
     private Map<String, List<String>> multiParams;
+    private Map<String, String> pathParams;
 
     public HttpRequest(Builder builder) {
         this.method = Objects.requireNonNull(builder.method, "Method is required");
@@ -27,6 +28,26 @@ public class HttpRequest {
                 .unmodifiableMap(new HashMap<>(builder.queryParams != null ? builder.queryParams : new HashMap<>()));
         this.multiParams = Collections
                 .unmodifiableMap(new HashMap<>(builder.multiParams != null ? builder.multiParams : new HashMap<>()));
+        this.pathParams = Collections
+                .unmodifiableMap(new HashMap<>(builder.pathParams != null ? builder.pathParams : new HashMap<>()));
+    }
+
+    // TODO: Find a better way to mutate the pathParams
+    public HttpRequest withPathParams(Map<String, String> pathParams) {
+        return new Builder()
+                .method(this.method)
+                .version(this.version)
+                .path(this.path)
+                .body(this.body)
+                .headers(this.headers)
+                .queryParams(this.queryParams)
+                .multiParams(this.multiParams)
+                .pathParams(pathParams)
+                .build();
+    }
+
+    public Optional<String> getPathParam(String key) {
+        return Optional.ofNullable(pathParams.get(key));
     }
 
     public HttpMethod getMethod() {
@@ -71,7 +92,7 @@ public class HttpRequest {
         private Map<String, String> headers;
         private Map<String, String> queryParams;
         private Map<String, List<String>> multiParams;
-
+        private Map<String, String> pathParams;
         public Builder version(String version) {
             this.version = version;
             return this;
@@ -99,6 +120,11 @@ public class HttpRequest {
 
         public Builder body(String body) {
             this.body = body;
+            return this;
+        }
+
+        public Builder pathParams(Map<String, String> pathParams) {
+            this.pathParams = pathParams;
             return this;
         }
 
@@ -131,6 +157,7 @@ public class HttpRequest {
                 ", headers=" + headers +
                 ", queryParams=" + queryParams +
                 ", multiParams=" + multiParams +
+                ", pathParams=" + pathParams +
                 '}';
     }
 }

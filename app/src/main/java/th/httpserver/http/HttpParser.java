@@ -21,10 +21,8 @@ public class HttpParser {
 
         try {
             while ((line = br.readLine()) != null && !line.isEmpty()) {
-                System.out.println("line: " + line);
                 if (firstLine) {
                     String path = getPath(line);
-                    System.out.println("path: " + path);
                     httpRequestBuilder.method(getMethod(line));
                     httpRequestBuilder.path(path);
                     httpRequestBuilder.version(getVersion(line));
@@ -60,7 +58,6 @@ public class HttpParser {
             httpRequestBuilder.headers(headers);
             return httpRequestBuilder.build();
         } catch (IOException e) {
-            System.out.println("Error parsing request: " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -72,7 +69,6 @@ public class HttpParser {
     private static HttpMethod getMethod(String firstLine) {
         String[] requestParts = firstLine.split(" ");
         if (requestParts.length >= 2) {
-            System.out.println("Method Name: " + requestParts[0]);
             return HttpMethod.valueOf(requestParts[0]);
         }
         return null;
@@ -109,7 +105,6 @@ public class HttpParser {
                         queryParamsMap.put(keyValue[0], keyValue[1]);
                     }
                 }
-                System.out.println("queryParamsMap: " + queryParamsMap);
                 return queryParamsMap;
             }
             
@@ -119,7 +114,6 @@ public class HttpParser {
 
     private static Map<String, List<String>> getMultiQueryParams(String line) {
         String[] lineParts = line.split(" ");
-        System.out.println("LLine for query params: " + line);
         if (lineParts.length >= 2) {
             String path = lineParts[1];
             String[] requestParts = path.split("\\?");
@@ -134,7 +128,6 @@ public class HttpParser {
                         multiQueryParams.put(keyValue[0], Arrays.asList(multiParams));
                     }
                 }
-                System.out.println("multiQueryParams: " + multiQueryParams);
                 return multiQueryParams;
             }
         }

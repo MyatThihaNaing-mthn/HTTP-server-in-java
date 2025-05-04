@@ -14,7 +14,6 @@ public class EchoController {
     
     @GetMapping(path = "")
     public HttpResponse echo(HttpRequest request, HttpResponse response) {
-        System.out.println("EchoController echo");
         
         // Set status code and message
         response.setStatus(HttpStatus.OK);
@@ -35,7 +34,6 @@ public class EchoController {
 
     @GetMapping(path = "/hello")
     public HttpResponse hello(HttpRequest request, HttpResponse response) {
-        System.out.println("EchoController hello");
         
         // Set status code and message
         response.setStatus(HttpStatus.OK);
@@ -54,4 +52,23 @@ public class EchoController {
 
         return response;
     }
+
+    @GetMapping(path = "/hello/{name}")
+    public HttpResponse helloName(HttpRequest request, HttpResponse response) {        
+        String name = request.getPathParam("name").orElse("Thiha");
+        response.setStatus(HttpStatus.OK);
+        response.addHeader("Content-Type", "text/plain");
+
+        String connection = request.getHeader("Connection");
+        if (connection != null && connection.equals("close")) {
+            response.addHeader("Connection", "close");
+        } else {
+            response.addHeader("Connection", "keep-alive");
+        }
+
+        response.setBody(("Hello, " + name + "!").getBytes());
+
+        return response;
+    }
+
 }

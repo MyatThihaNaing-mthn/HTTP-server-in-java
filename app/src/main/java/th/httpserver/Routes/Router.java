@@ -1,6 +1,8 @@
 package th.httpserver.Routes;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +14,8 @@ import th.httpserver.http.HttpResponse;
 import th.httpserver.http.HttpStatus;
 
 public class Router {
-    private static final Map<String, Method> routes = new HashMap<>();
+    private static final Map<String, Method> staticRoutes = new HashMap<>();
+    private static final List<RouteDefinition> dynamicRoutes = new ArrayList<>();    
     private static final Router INSTANCE = new Router();
 
     public static Router getInstance() {
@@ -20,14 +23,12 @@ public class Router {
     }
 
     private Router() {
-        System.out.println("Router constructor called");
+        System.out.println("Initializing Router...");
         initRoutes();
     }
 
-    private void initRoutes() {
-        System.out.println("Router initRoutes starting");
+    private void initRoutes() {        
         Set<Class<?>> controllerClasses = getAllControllerClasses();
-        System.out.println("Found " + controllerClasses.size() + " controller classes");
 
         for (Class<?> controllerClass : controllerClasses) {
             System.out.println("Processing controller: " + controllerClass.getName());
@@ -38,11 +39,14 @@ public class Router {
             List<RouteDefinition> routeDefinitions = RouteScanner.extractRoutes(controllerClass, basePath);
 
             for (RouteDefinition route : routeDefinitions) {
-                System.out.println(route);
-                routes.put(route.getPath(), route.getHandler());
+                if (route.isDynamic()) {
+                    dynamicRoutes.add(route);
+                } else {
+                    staticRoutes.put(route.getPath(), route.getHandler());
+                }
             }
         }
-        System.out.println("Router initRoutes completed. Total routes: " + routes.size());
+        System.out.println("Router initRoutes completed. Total routes: " + (staticRoutes.size() + dynamicRoutes.size()));
     }
 
     private String normalizePath(String path) {
@@ -56,15 +60,13 @@ public class Router {
     }
 
     public static void handleRequest(HttpRequest request, HttpResponse response) {
-        System.out.println("Router handleRequest " + request.toString());
         INSTANCE.instanceHandleRequest(request, response);
     }
 
     private void instanceHandleRequest(HttpRequest request, HttpResponse response) {
         String path = request.getPath();
         String normalizedPath = normalizePath(path);
-        System.out.println("normalizedPath: " + normalizedPath);
-        Method method = routes.get(normalizedPath);
+        Method method = staticRoutes.get(normalizedPath); 
         if (method != null) {
             try {
                 Object controllerInstance = method.getDeclaringClass().getDeclaredConstructor().newInstance();
@@ -73,13 +75,47 @@ public class Router {
             } catch (Exception e) {
                 e.printStackTrace();
                 response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);
-                return; // Return after error
+                return;
             }
         }
+
+        for (RouteDefinition route : dynamicRoutes) {
+            if (route.getPathPattern().matcher(path).matches()) {
+                try {
+                    // create new httprequest with path params 
+                    request = request.withPathParams(getPathParams(route, path));
+                    Object controllerInstance = route.getHandler().getDeclaringClass().getDeclaredConstructor().newInstance();
+                    route.getHandler().invoke(controllerInstance, request, response);
+                    return; // Return after successful handling
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+                    return; // Return after error
+                }
+            }
+        }
+
         // Only handle not found if no route was found
         response.setStatus(HttpStatus.NOT_FOUND);
         response.setBody("Not Found".getBytes());
 
+    }
+  
+
+    //TODO: Need to check if the path is a match but expensive operation
+    private Map<String, String> getPathParams(RouteDefinition routeDefinition, String acutalPath) { 
+        if (!routeDefinition.isDynamic()) { return Collections.emptyMap(); } 
+        Map<String, String> pathParams = new HashMap<>();
+        String[] pathParts = acutalPath.split("/");
+        String[] patternParts = routeDefinition.getPath().split("/");
+
+        for (int i = 0; i < patternParts.length; i++) {
+            if (patternParts[i].startsWith("{") && patternParts[i].endsWith("}")) {
+                pathParams.put(patternParts[i].substring(1, patternParts[i].length() - 1), pathParts[i]);
+                System.out.println("Path param: " + patternParts[i].substring(1, patternParts[i].length() - 1) + " = " + pathParts[i]);
+            }
+        }
+        return pathParams;
     }
 
     private Set<Class<?>> getAllControllerClasses() {

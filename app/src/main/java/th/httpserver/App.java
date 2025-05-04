@@ -85,10 +85,8 @@ public class App {
             middlewareChain.handle(httpRequest, httpResponse);
 
             ResponseSender.sendResponse(httpResponse, clientSocket);
-            System.out.println("HTTP Response: " + httpResponse.getBody());
-            
+                        
         } catch (IOException e) {
-            System.out.println("Client connection error: " + e.getMessage());
             e.printStackTrace();
             } finally {
                 System.out.println("isKeepAlive: " + isKeepAlive);

@@ -23,6 +23,7 @@ public class MiddlewareChain {
             Middleware middleware = middlewares.next();
             middleware.handle(request, response, this);
         }else{
+            // Act as final middleware to controllers
             Router.handleRequest(request, response);
         }
         

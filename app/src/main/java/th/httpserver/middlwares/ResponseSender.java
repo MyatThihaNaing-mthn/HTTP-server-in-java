@@ -47,14 +47,6 @@ public class ResponseSender {
 
         // End of headers
         responseStr.append("\r\n");
-
-        // Print response before sending
-        System.out.println("Sending response:");
-        System.out.println(responseStr.toString());
-        if (bodyBytes != null) {
-            System.out.println("Body: " + new String(bodyBytes));
-        }
-
         // Send headers
         clientSocket.getOutputStream().write(responseStr.toString().getBytes());
         

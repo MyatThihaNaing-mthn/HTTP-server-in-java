@@ -13,15 +13,12 @@ public class TLSServer {
         // Read password from gradle.properties
         Properties props = new Properties();
         String gradlePropsPath = System.getProperty("user.dir") + "/gradle.properties";
-        System.out.println("Reading gradle.properties from: " + gradlePropsPath);
         props.load(new FileReader(gradlePropsPath));
         String keystorePassword = props.getProperty("keystore.password", "httpServer");
-        System.out.println("keystorePassword: " + keystorePassword);
 
         // Load the keystore
         KeyStore keyStore = KeyStore.getInstance("JKS");
         String keystorePath = System.getProperty("user.dir") + "/app/src/main/resources/certs/keystore.jks";
-        System.out.println("Loading keystore from: " + keystorePath);
         keyStore.load(new FileInputStream(keystorePath), keystorePassword.toCharArray());
 
         // Initialize KeyManagerFactory
