@@ -4,12 +4,14 @@ import java.io.IOException;
 import th.httpserver.http.HttpRequest;
 import th.httpserver.http.HttpResponse;
 import th.httpserver.http.HttpStatus;
+import th.httpserver.http.RequestContext;
 import th.httpserver.utils.FileReader;
 
 public class StaticFilesMiddleware implements Middleware {
 
     @Override
-    public void handle(HttpRequest request, HttpResponse response, MiddlewareChain next) throws IOException {
+    public void handle(RequestContext ctx, HttpResponse response, MiddlewareChain next) throws IOException {
+        HttpRequest request = ctx.getRequest();
         if(request.getPath() == null) {
             response.setStatus(HttpStatus.BAD_REQUEST);
             response.setBody("Bad Request".getBytes());
@@ -50,7 +52,7 @@ public class StaticFilesMiddleware implements Middleware {
         }
 
         // If we get here, it's not a static file request, so pass it to the next middleware
-        next.handle(request, response);
+        next.handle(ctx, response);
     }
 
     private Boolean checkRootPath(HttpRequest request) {

@@ -5,8 +5,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import th.httpserver.Routes.Router;
-import th.httpserver.http.HttpRequest;
 import th.httpserver.http.HttpResponse;
+import th.httpserver.http.RequestContext;
 
 public class MiddlewareChain {
     private final Iterator<Middleware> middlewares;
@@ -18,13 +18,13 @@ public class MiddlewareChain {
 
     
 
-    public void handle(HttpRequest request, HttpResponse response) throws IOException {
+    public void handle(RequestContext ctx, HttpResponse response) throws IOException {
         if(middlewares.hasNext()) {
             Middleware middleware = middlewares.next();
-            middleware.handle(request, response, this);
+            middleware.handle(ctx, response, this);
         }else{
             // Act as final middleware to controllers
-            Router.handleRequest(request, response);
+            Router.handleRequest(ctx.getRequest(), response);
         }
         
     }

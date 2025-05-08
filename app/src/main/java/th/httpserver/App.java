@@ -12,15 +12,15 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.net.ssl.SSLContext;
-
-import th.httpserver.http.HttpParser;
-import th.httpserver.http.HttpRequest;
 import th.httpserver.http.HttpResponse;
+import th.httpserver.http.RequestContext;
 import th.httpserver.middlwares.AuthMiddleware;
 import th.httpserver.middlwares.Middleware;
 import th.httpserver.middlwares.MiddlewareChain;
+import th.httpserver.middlwares.ParseMiddleware;
 import th.httpserver.middlwares.ResponseSender;
 import th.httpserver.middlwares.StaticFilesMiddleware;
+import th.httpserver.middlwares.ratelimiter.RateLimiterMiddleware;
 import th.httpserver.tls.TLSServer;
 import th.httpserver.Routes.Router;
 
@@ -29,11 +29,12 @@ public class App {
     private static final int HTTP_PORT = 4220;
     private static String ROOT_DIR = ".";
     private static final int THREAD_POOL_SIZE = 10;
-    private static final ExecutorService threadPool = Executors.newFixedThreadPool(THREAD_POOL_SIZE);   
+    private static final ExecutorService threadPool = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
     private static final List<Middleware> middlewares = new ArrayList<>();
 
     public static void main(String[] args) {
         setRootDir(args);
+        middlewares.add(new RateLimiterMiddleware());
         middlewares.add(new AuthMiddleware());
         middlewares.add(new StaticFilesMiddleware());
         try {
@@ -66,35 +67,38 @@ public class App {
     }
 
     private static void handleClientConnection(Socket clientSocket) {
-
         threadPool.execute(() -> {
-        boolean isKeepAlive = true;
-        while (isKeepAlive) {
-            
-            try {
-                HttpRequest httpRequest = HttpParser.parse(clientSocket.getInputStream());
-                if (httpRequest == null) {
-                System.out.println("Invalid request");
-                return;
-            }
-            if(httpRequest.getHeader("Connection") != null) {
-                isKeepAlive = httpRequest.getHeader("Connection").equals("keep-alive");
-            }
-            HttpResponse httpResponse = new HttpResponse();
-            MiddlewareChain middlewareChain = new MiddlewareChain(middlewares);
-            middlewareChain.handle(httpRequest, httpResponse);
+            boolean isKeepAlive = true;
+            RequestContext ctx = new RequestContext(clientSocket);
+            HttpResponse response = new HttpResponse();
+            while (isKeepAlive) {
+                try {
+                    // Create a new middleware chain for each request with ParseMiddleware
+                    List<Middleware> requestMiddlewares = new ArrayList<>();
+                    requestMiddlewares.add(new ParseMiddleware(clientSocket));
+                    requestMiddlewares.addAll(middlewares);
+                    MiddlewareChain middlewareChain = new MiddlewareChain(requestMiddlewares);
+                    
+                    middlewareChain.handle(ctx, response);
+                    if (ctx.getRequest() == null) {
+                        System.out.println("Invalid request");
+                        return;
+                    }
+                    if (ctx.getRequest().getHeader("Connection") != null) {
+                        isKeepAlive = ctx.getRequest().getHeader("Connection").equals("keep-alive");
+                    }
+                    ResponseSender.sendResponse(response, clientSocket);
 
-            ResponseSender.sendResponse(httpResponse, clientSocket);
-                        
-        } catch (IOException e) {
-            e.printStackTrace();
-            } finally {
-                System.out.println("isKeepAlive: " + isKeepAlive);
-                if(!isKeepAlive ) {
-                    closeSocketQuietly(clientSocket);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    System.out.println("isKeepAlive: " + isKeepAlive);
+                    if (!isKeepAlive) {
+                        closeSocketQuietly(clientSocket);
+                    }
                 }
             }
-        }});         
+        });
     }
 
     private static void startServer(SSLContext sslContext) throws IOException {

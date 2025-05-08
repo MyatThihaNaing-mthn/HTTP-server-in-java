@@ -9,6 +9,7 @@ import java.util.HashMap;
 
 public class HttpRequest {
     private HttpMethod method;
+    private String ipAddress;
     private String version;
     private String path;
     private String body;
@@ -22,6 +23,7 @@ public class HttpRequest {
         this.version = Objects.requireNonNull(builder.version, "Version is required");
         this.path = Objects.requireNonNull(builder.path, "Path is required");
         this.body = builder.body;
+        this.ipAddress = builder.ipAddress;
         this.headers = Collections
                 .unmodifiableMap(new HashMap<>(builder.headers != null ? builder.headers : new HashMap<>()));
         this.queryParams = Collections
@@ -37,6 +39,7 @@ public class HttpRequest {
         return new Builder()
                 .method(this.method)
                 .version(this.version)
+                .ipAddress(this.ipAddress)
                 .path(this.path)
                 .body(this.body)
                 .headers(this.headers)
@@ -52,6 +55,10 @@ public class HttpRequest {
 
     public HttpMethod getMethod() {
         return method;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
     }
 
     public String getPath() {
@@ -88,13 +95,20 @@ public class HttpRequest {
         private HttpMethod method;
         private String version;
         private String path;
+        private String ipAddress;
         private String body;
         private Map<String, String> headers;
         private Map<String, String> queryParams;
         private Map<String, List<String>> multiParams;
         private Map<String, String> pathParams;
+
         public Builder version(String version) {
             this.version = version;
+            return this;
+        }   
+
+        public Builder ipAddress(String ipAddress) {
+            this.ipAddress = ipAddress;
             return this;
         }
 
@@ -153,6 +167,7 @@ public class HttpRequest {
                 "method=" + method +
                 ", version='" + version + '\'' +
                 ", path='" + path + '\'' +
+                ", ipAddress='" + ipAddress + '\'' +
                 ", body='" + body + '\'' +
                 ", headers=" + headers +
                 ", queryParams=" + queryParams +

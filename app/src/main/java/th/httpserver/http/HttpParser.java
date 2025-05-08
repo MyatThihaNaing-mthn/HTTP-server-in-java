@@ -4,14 +4,30 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class HttpParser {
-    public static HttpRequest parse(InputStream inputStream) {
+    public static HttpRequest parse(Socket clientSocket) throws IOException {
+        InputStream inputStream = clientSocket.getInputStream();
         HttpRequest.Builder httpRequestBuilder = new HttpRequest.Builder();
+        
+        // Set the client's IP address
+        InetSocketAddress socketAddress = (InetSocketAddress) clientSocket.getRemoteSocketAddress();
+        InetAddress inetAddress = socketAddress.getAddress();
+        String ipAddress = inetAddress.getHostAddress();
+
+        System.out.println("IP Address in parser: " + ipAddress);
+        // Handle localhost/loopback address
+        if (ipAddress.equals("127.0.0.1") || ipAddress.equals("0:0:0:0:0:0:0:1")) {
+            ipAddress = "localhost";
+        }
+        httpRequestBuilder.ipAddress(ipAddress);
 
         BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
         String line;
@@ -43,6 +59,10 @@ public class HttpParser {
                     headers.put("Accept", line.substring(7));
                 } else if (line.startsWith("Connection: ")) {
                     headers.put("Connection", line.substring(12));
+                } else if (line.startsWith("X-Forwarded-For: ")) {
+                    // If X-Forwarded-For header is present, use it instead of direct IP
+                    String  forwardedIp = line.substring(16);
+                    httpRequestBuilder.ipAddress(forwardedIp);
                 }
             }
 
