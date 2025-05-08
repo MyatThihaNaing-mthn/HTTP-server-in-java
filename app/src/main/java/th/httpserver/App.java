@@ -21,8 +21,8 @@ import th.httpserver.middlwares.ParseMiddleware;
 import th.httpserver.middlwares.ResponseSender;
 import th.httpserver.middlwares.StaticFilesMiddleware;
 import th.httpserver.middlwares.ratelimiter.RateLimiterMiddleware;
+import th.httpserver.routes.Router;
 import th.httpserver.tls.TLSServer;
-import th.httpserver.Routes.Router;
 
 public class App {
     private static final int HTTPS_PORT = 4221;
@@ -42,7 +42,25 @@ public class App {
             Router.getInstance();
 
             SSLContext sslContext = TLSServer.createSSLContext();
-            startServer(sslContext);
+            
+            // Start HTTPS server in a separate thread
+            new Thread(() -> {
+                try {
+                    startServer(sslContext);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+
+            // Start HTTP server in a separate thread
+            new Thread(() -> {
+                try {
+                    startHttpServer();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+
         } catch (Exception e) {
             System.err.println("Server failed to start: " + e.getMessage());
             e.printStackTrace();
@@ -113,6 +131,31 @@ public class App {
         }
     }
 
+    private static void startHttpServer() throws IOException {
+        try (ServerSocket serverSocket = createServerSocket(null)) {
+            serverSocket.setReuseAddress(true);
+            System.out.println("Server is running on port " + HTTP_PORT);
+            while (true) {
+                Socket clientSocket = serverSocket.accept();
+                System.out.println("Accepted new http connection");
+                handleHttpRedirect(clientSocket);
+            }
+        }
+    }
+
+    private static void handleHttpRedirect(Socket clientSocket) {
+        try {
+            String redirectResponse = "HTTP/1.1 301 Moved Permanently\r\n" +
+                    "Location: https://" + clientSocket.getInetAddress().getHostName() + ":" + HTTPS_PORT + "\r\n" +
+                    "Content-Length: 0\r\n" +
+                    "\r\n";
+            clientSocket.getOutputStream().write(redirectResponse.getBytes());
+            clientSocket.getOutputStream().flush();
+            clientSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     private static ServerSocket createServerSocket(SSLContext sslContext) throws IOException {
         if (sslContext != null) {
             return sslContext.getServerSocketFactory().createServerSocket(HTTPS_PORT);

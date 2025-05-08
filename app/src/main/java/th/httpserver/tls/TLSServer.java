@@ -13,13 +13,26 @@ public class TLSServer {
         // Read password from gradle.properties
         Properties props = new Properties();
         String gradlePropsPath = System.getProperty("user.dir") + "/gradle.properties";
-        props.load(new FileReader(gradlePropsPath));
+        String keyStoreFilePath = System.getProperty("user.dir") + "/src/main/resources/certs/keystore.jks";
+        try {
+            props.load(new FileReader(gradlePropsPath));
+        } catch (Exception e) {
+            System.err.println("Warning: Could not load gradle.properties, using default password");
+            System.err.println("Expected path: " + gradlePropsPath);
+            System.err.println("Current working directory: " + System.getProperty("user.dir"));
+        }
         String keystorePassword = props.getProperty("keystore.password", "httpServer");
 
         // Load the keystore
         KeyStore keyStore = KeyStore.getInstance("JKS");
-        String keystorePath = System.getProperty("user.dir") + "/app/src/main/resources/certs/keystore.jks";
-        keyStore.load(new FileInputStream(keystorePath), keystorePassword.toCharArray());
+        try {
+            keyStore.load(new FileInputStream(keyStoreFilePath), keystorePassword.toCharArray());
+        } catch (Exception e) {
+            System.err.println("Error: Could not load keystore");
+            System.err.println("Expected path: " + keyStoreFilePath);
+            System.err.println("Current working directory: " + System.getProperty("user.dir"));
+            throw e;
+        }
 
         // Initialize KeyManagerFactory
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());

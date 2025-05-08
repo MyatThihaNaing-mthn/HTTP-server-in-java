@@ -4,15 +4,14 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import th.httpserver.Routes.Router;
 import th.httpserver.http.HttpResponse;
 import th.httpserver.http.RequestContext;
+import th.httpserver.routes.Router;
 
 public class MiddlewareChain {
     private final Iterator<Middleware> middlewares;
 
     public MiddlewareChain(List<Middleware> middlewares) {
-        // Default middleware is ParseMiddleware
         this.middlewares = middlewares.iterator();
     }
 

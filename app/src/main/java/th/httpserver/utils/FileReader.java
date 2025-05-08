@@ -7,7 +7,7 @@ import java.io.IOException;
 
 public class FileReader {
 
-    private static final String ROOT_DIR = System.getProperty("user.dir") + "/app/src/main/resources/public";
+    private static final String ROOT_DIR = System.getProperty("user.dir") + "/src/main/resources/public";
     
     
     static {
@@ -16,6 +16,7 @@ public class FileReader {
 
     public static byte[] readFile(String path) throws IOException {
         File file = new File(ROOT_DIR + path);
+        System.out.println("Reading file: " + file.getAbsolutePath());
         if (!file.exists()) {
             return null;
         }
